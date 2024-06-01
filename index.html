@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <title>Prueba de websocket</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+</head>
+<style>
+    table {
+        border-collapse: collapse;
+        width: auto;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+        width: auto;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+<body>
+    
+    <h1>Hola mundo!</h1>
+
+    <h2>Tabla de datos</h2>
+    <table id="miTabla">
+        <thead>
+            <tr>
+                <th>columna1</th>
+                <th>columna2</th>
+                <th>columna3</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+
+</body>
+
+<script>
+    fetch('http://127.0.0.1:5000/open_connection', { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: 'conectado' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message);
+    })
+    .catch(error => {
+        console.error('Error al cerrar la conexión:', error);
+    });
+
+
+    // Manejo de la conexión WebSocket
+    function connectWebSocket() {
+        // Si ya hay una conexión WebSocket, cerrarla antes de crear una nueva
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+        }
+
+        // Crear la nueva conexión WebSocket
+        var ws = new WebSocket('ws://127.0.0.1:5000/ws');
+
+        // Recibir el JSON de los tados
+        ws.onmessage = function(event) {
+            console.log("Received data from server:", event.data);
+            var datosJSON = JSON.parse(event.data);
+            filas_datos_json(datosJSON);
+        };
+
+        // Mostrar errores
+        ws.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        // Avisar de desconexión con el servidor websocket
+        ws.onclose = function(event) {
+            console.log("Disconnected from WebSocket server");
+            // Intentar reconectar después de un breve período de tiempo
+            setTimeout(connectWebSocket, 3000);
+        }; }
+
+        connectWebSocket();
+</script>
+
+<script>
+function filas_datos_json(datosJSON) {
+    // Limpiar las filas existentes en la tabla
+    var tbody = document.querySelector("#miTabla tbody");
+    tbody.innerHTML = "";
+
+    // Obtener la longitud máxima de los arrays en cada columna
+    var maxFilas = Math.max(...Object.values(datosJSON).map(arr => arr.length));
+
+    // Generar las filas de la tabla con los datos actualizados
+    for (var i = 0; i < maxFilas; i++) {
+        var fila = document.createElement("tr");
+
+        // Iterar sobre cada columna y añadir el valor correspondiente a la fila
+        Object.keys(datosJSON).forEach(columna => {
+        	if (columna !== 'id') {
+	            var celda = document.createElement("td");
+	            var valor = datosJSON[columna][i];
+	            celda.textContent = valor !== undefined ? valor : ''; // Usar espacio en blanco si no hay valor
+	            fila.appendChild(celda);
+        	}
+        });
+
+        tbody.appendChild(fila);
+    }
+}
+</script>
+</html>
