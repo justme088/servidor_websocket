@@ -49,7 +49,7 @@
 </body>
 
 <script>
-    fetch('http://127.0.0.1:5000/open_connection', { 
+    fetch('http://0.0.0.0:5000/open_connection', { 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -73,7 +73,7 @@
         }
 
         // Crear la nueva conexión WebSocket
-        var ws = new WebSocket('ws://127.0.0.1:5000/ws');
+        var ws = new WebSocket('ws://0.0.0.0:5000/ws');
 
         // Recibir el JSON de los tados
         ws.onmessage = function(event) {
