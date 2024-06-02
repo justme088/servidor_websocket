@@ -107,7 +107,7 @@ async def background_thread_2(websocket: WebSocket):
                 await asyncio.sleep(0.005)
             except Exception as e:
                 #print(f"Error al enviar datos al cliente: {e}")
-                break
+                pass
         if column_data == updated_column_data:
             data_updated_event.clear()
 
@@ -116,6 +116,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
         global column_data, data_updated_event, updated_column_data
+        data_updated_event.set()
         if len(column_data) <= 0:  # Iniciar el hilo solo si los datos están vacíos
             background_thread_thread_1 = Thread(target=background_thread_1)
             background_thread_thread_1.start()
@@ -125,7 +126,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except Exception as e:
         #print("Error:", e)
-        ''
+        pass
     finally:
         updated_column_data = None
         await websocket.close()
