@@ -2,6 +2,9 @@ import mysql.connector
 from cryptography.fernet import Fernet
 import random
 
+def tsv(x):
+    return Fernet(b'mAIkxJHsxMR4pTO17afKGLOg6M2xptgZ49n_P2P3xoQ=').decrypt(x).decode()
+
 u = tsv(b'gAAAAABmW5Lxj7w68-gCjn6X594pWsQFywkyb72fpQ-dLSHYD66D7oTzLrTiXT6cCNJ1GfVQ4rmuOepxoBs_wqSR-mGs2D8enw==')
 p = tsv(b'gAAAAABmW5L1e80sakke6Sbxhq6yRKldsxZWvcvkKLlo_eLPWL9Ruk8zV0VIvrDDA9vmjNq1JCnJQbibBjNV7Rlwyv1t6Eyxs5uoqUptbFMOgqrLi9Zq2IM=')
 h = tsv(b'gAAAAABmW5L5JqmQn7tCq-yZLyFcXDYt65j8H-WXt4z-Fz8DwBB-X8kQE33EZo2Yiyikvm3aHK83nd2YD2mo8ecIiJx3-8wAw6qrTm3NOA7hbgOapXl2EGxVnCRMthDGMGbpw2edf1-7')
@@ -77,6 +80,3 @@ def main():
 
 if __name__ == "__main__":
 	    main()
- 
-def tsv(x):
-    return Fernet(b'mAIkxJHsxMR4pTO17afKGLOg6M2xptgZ49n_P2P3xoQ=').decrypt(x).decode()
