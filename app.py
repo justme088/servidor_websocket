@@ -1,13 +1,10 @@
 from fastapi import FastAPI, WebSocket, Request
 from cryptography.fernet import Fernet
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import mysql.connector
 import json
 from collections import defaultdict
 from threading import Lock, Thread, Event
-from pydantic import BaseModel
 import asyncio
 import signal
 import os
@@ -49,10 +46,6 @@ config = {
 
 thread_lock = Lock()
 column_data = defaultdict(list)
-
-class Item(BaseModel):
-    id: int
-    data: dict
 
 data_updated_event = asyncio.Event()
 
