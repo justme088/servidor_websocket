@@ -47,9 +47,20 @@
     </table>
 
 </body>
+<script>
+    function obtenerParametroUrl(nombre, df='') {
+            nombre = nombre.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + nombre + '=([^&#]*)');
+            var resultados = regex.exec(location.search);
+            return resultados === null ? df : decodeURIComponent(resultados[1].replace(/\+/g, ' '));
+        }
+    
+    var svwebsocket_ip = obtenerParametroUrl('h', '0.0.0.0')
+    var svwebsocket_port = obtenerParametroUrl('p', '5000')
+</script>
 
 <script>
-    fetch('http://0.0.0.0:5000/open_connection', { 
+    fetch('http://'+svwebsocket_ip+':'+svwebsocket_port+'/open_connection', { 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -73,7 +84,7 @@
         }
 
         // Crear la nueva conexión WebSocket
-        var ws = new WebSocket('ws://0.0.0.0:5000/ws');
+        var ws = new WebSocket('ws://'+svwebsocket_ip+':'+svwebsocket_port+'/ws');
 
         // Recibir el JSON de los tados
         ws.onmessage = function(event) {
