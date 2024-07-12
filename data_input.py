@@ -1,6 +1,8 @@
 import mysql.connector
 from cryptography.fernet import Fernet
 import random
+import time
+from datetime import datetime, timedelta
 
 def tsv(x):
     return Fernet(b'mAIkxJHsxMR4pTO17afKGLOg6M2xptgZ49n_P2P3xoQ=').decrypt(x).decode()
@@ -23,14 +25,27 @@ def connect_to_database():
     return mysql.connector.connect(**config)
 
 def create_random_row(cursor):
-    random_values = [random.randint(1, 100) for _ in range(3)]
-    cursor.execute("INSERT INTO columnas (columna1, columna2, columna3) VALUES (%s, %s, %s)", random_values)
+    random_values = [random.randint(1, 100) for _ in range(4)]  # Generar 4 valores aleatorios
+    current_timestamp = int(time.time() * 1000)  # Obtener el timestamp actual en milisegundos
+
+    # Generar una fecha aleatoria en los últimos 2 años
+    random_date_2_years_ago = datetime.now() - timedelta(days=random.randint(0, 730))
+
+    # Generar una fecha aleatoria en los últimos 6 meses
+    random_date_6_months_ago = datetime.now() - timedelta(days=random.randint(0, 180))
+
+    # Elegir aleatoriamente entre las tres fechas generadas
+    random_dates = [int(datetime.now().timestamp() * 1000), int(random_date_6_months_ago.timestamp() * 1000), int(random_date_2_years_ago.timestamp() * 1000)]
+    #random_values.append(random.choice(random_dates))
+    random_values.append(int(datetime.now().timestamp() * 1000))
+
+    cursor.execute("INSERT INTO columnas (columna1, columna2, columna3, columna4, columna5) VALUES (%s, %s, %s, %s, %s)", random_values)
 
 def delete_last_row(cursor):
     cursor.execute("DELETE FROM columnas ORDER BY id DESC LIMIT 1")
 
 def show_table_contents(cursor):
-    cursor.execute("SELECT columna1, columna2, columna3 FROM columnas ORDER BY id")
+    cursor.execute("SELECT columna1, columna2, columna3, columna4, columna5 FROM columnas ORDER BY id")
     rows = cursor.fetchall()
     for row in rows:
         print(row)
@@ -79,4 +94,4 @@ def main():
 
 
 if __name__ == "__main__":
-	    main()
+    main()
