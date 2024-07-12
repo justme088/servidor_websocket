@@ -12,6 +12,8 @@
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+    <script nonce="undefined" src="https://cdn.zingchart.com/zingchart.min.js"></script>
+    <script nonce="undefined" src="https://cdn.zingchart.com/modules/zingchart-zoom-buttons.min.js"></script>
 </head>
 <style>
     table {
@@ -27,6 +29,20 @@
     th {
         background-color: #f2f2f2;
     }
+
+    .chart--container {
+      min-height: 530px;
+      width: 100%;
+      height: 100%;
+    }
+
+    input {
+      font-family: 'Lucida Sans Unicode';
+    }
+
+    .zc-ref {
+      display: none;
+    }
 </style>
 <body>
     
@@ -39,12 +55,19 @@
                 <th>columna1</th>
                 <th>columna2</th>
                 <th>columna3</th>
+                <th>columna4</th>
+                <th>columna5</th>
             </tr>
         </thead>
         <tbody>
 
         </tbody>
     </table>
+    <br><br>
+    
+    <div id="myChart" class="chart--container">
+        <a class="zc-ref" href="https://www.zingchart.com/">Powered by ZingChart</a>
+    </div>
 
 </body>
 <script>
@@ -60,37 +83,65 @@
 </script>
 
 <script>
-    fetch('http://'+svwebsocket_ip+':'+svwebsocket_port+'/open_connection', { 
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: 'conectado' })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(data.message);
-    })
-    .catch(error => {
-        console.error('Error al cerrar la conexión:', error);
-    });
-
+    async function getUserId() {
+    const response = await fetch('http://'+svwebsocket_ip+':'+svwebsocket_port+'/generate_user_id');
+    const data = await response.json();
+    return data.user_id;
+    }
 
     // Manejo de la conexión WebSocket
-    function connectWebSocket() {
+    var x_v = 1;
+    async function connectWebSocket() {
+        var processedIndices = new Set();
         // Si ya hay una conexión WebSocket, cerrarla antes de crear una nueva
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.close();
         }
 
         // Crear la nueva conexión WebSocket
-        var ws = new WebSocket('ws://'+svwebsocket_ip+':'+svwebsocket_port+'/ws');
+        const userId = await getUserId();
+        var ws = new WebSocket('ws://'+svwebsocket_ip+':'+svwebsocket_port+'/ws/'+userId);
+
+        ws.onopen = function(event) {
+            console.log('Conexión establecida');
+            ws.send(JSON.stringify({ message: 'Inicio' }));
+            
+        };
 
         // Recibir el JSON de los tados
         ws.onmessage = function(event) {
             console.log("Received data from server:", event.data);
             var datosJSON = JSON.parse(event.data);
-            filas_datos_json(datosJSON);
+
+            // Obtener todos los índices de las filas enviadas en este evento
+            var allIndices = [];
+            Object.keys(datosJSON).forEach(key => {
+                if (key !== 'id') {
+                    allIndices.push(...datosJSON[key]);
+                }
+            });
+
+            // Verificar si algún índice ya está en los procesados
+            var nuevosIndices = allIndices.filter(idx => !processedIndices.has(idx));
+
+            if (nuevosIndices.length > 0) {
+                // Añadir nuevos índices al conjunto de procesados
+                nuevosIndices.forEach(idx => processedIndices.add(idx));
+
+                console.log('x_v', x_v);
+
+                // Procesar los datos solo si hay nuevos índices
+                filas_datos_json(datosJSON);
+                if (x_v == 1) {
+                    ws.send(JSON.stringify({ message: 'Siguiente' }));
+                    x_v = 0;
+                    console.log('x_v', x_v);
+                }
+                datos_zingchart(datosJSON);
+
+            } else {
+                console.log("Todos los datos ya han sido procesados, no se realizan cambios.");
+            }
         };
 
         // Mostrar errores
@@ -107,8 +158,60 @@
 
         connectWebSocket();
 </script>
+<script>
+
+function datos_zingchart(datosJSON) {
+    let data = datosJSON;
+    console.log("Datos recibidos:", data);
+
+    // Arrays para almacenar los nuevos valores y etiquetas
+    let newValues = [];
+    let newLabels = [];
+
+    // Iterar sobre las columnas de datos
+    Object.keys(data).forEach((columna, index) => {
+        if (data[columna]) {
+            if (columna === 'columna5') {
+                // Convertir los valores de columna5 a enteros para el eje X
+                chartData['serie' + (index + 1)] = data[columna].map(value => parseInt(value));
+            } else {
+                // Crear pares [columna5[x], columnaY[x]] para todas las columnas Y
+                let pairs = data['columna5'].map((value, idx) => {
+                    chartData['serie' + (index + 1)].push([parseInt(value), data[columna][idx]]);
+                    return [parseInt(value), data[columna][idx]];
+                });
+
+                // Añadir valores para la serie en ZingChart
+                zingchart.exec('myChart', 'appendseriesvalues', {
+                    plotindex: index,
+                    values: pairs
+                });
+            }
+
+            // Añadir etiquetas si es serie5 (eje X)
+            if (index === 4) { // serie5 está en el índice 4 (0-indexed)
+                newValues = data[columna].map(value => parseInt(value));
+                newLabels = data[columna].map((value, idx) => value.toString()); // Utilizar los valores de columna5 como etiquetas
+            }
+        }
+    });
+    console.log("Datos de chartData: ", chartData);
+};
+
+
+</script>
 
 <script>
+let chartData = {
+serie1: [],
+serie2: [],
+serie3: [],
+serie4: [],
+serie5: []
+};
+
+ZC.LICENSE = ["569d52cefae586f634c54f86dc99e6a9", "b55b025e438fa8a98e32482b5f768ff5"]; // window:load event for Javascript to run after HTML
+// because this Javascript is injected into the document head
 function filas_datos_json(datosJSON) {
     // Limpiar las filas existentes en la tabla
     var tbody = document.querySelector("#miTabla tbody");
@@ -123,16 +226,155 @@ function filas_datos_json(datosJSON) {
 
         // Iterar sobre cada columna y añadir el valor correspondiente a la fila
         Object.keys(datosJSON).forEach(columna => {
-        	if (columna !== 'id') {
-	            var celda = document.createElement("td");
-	            var valor = datosJSON[columna][i];
-	            celda.textContent = valor !== undefined ? valor : ''; // Usar espacio en blanco si no hay valor
-	            fila.appendChild(celda);
-        	}
+            if (columna !== 'id') {
+                var celda = document.createElement("td");
+                var valor = datosJSON[columna][i];
+                celda.textContent = valor !== undefined ? valor : ''; // Usar espacio en blanco si no hay valor
+                fila.appendChild(celda);
+            }
         });
 
         tbody.appendChild(fila);
     }
 }
 </script>
+
+<script>
+    zingchart.bind('myChart', 'reload', function() {
+    console.log('Se ha iniciado el reload del gráfico.');
+    inicializarGrafico(chartData);
+    });
+
+</script>
+
+<script>
+    function inicializarGrafico(a) {
+    // Configuración inicial del gráfico
+    let chartConfig = {
+        type: 'line',
+        globals: {
+            fontFamily: 'Lucida Sans Unicode'
+        },
+        plotarea: {
+            margin: '50px 40px 40px 80px'
+        },
+        scaleX: {
+            guide: {
+                alpha: 1,
+                lineStyle: 'solid',
+                lineWidth: '1px',
+            },
+            item: {
+                fontSize: '10px'
+            },
+            transform: {
+                type: 'date'
+            },
+            zooming: true,
+        },
+        scaleY: {
+            autoFit: false,
+            guide: {
+                lineStyle: 'solid'
+            },
+            item: {
+                fontSize: '10px'
+            },
+            minValue: 0,  // Valor mínimo en el eje Y
+            maxValue: 140,  // Valor máximo en el eje Y
+            step: 20,  // Paso entre los valores del eje Y
+            short: true
+        },
+        preview: {
+            adjustLayout: true,
+            borderWidth: '1px',
+            handle: {
+                height: '20px',
+                lineWidth: '0px'
+            }
+        },
+        noData: {
+            text: 'No data found. Try reloading again',
+            backgroundColor: '#efefef'
+        },
+        series: [
+        { text: 'Serie 1 (L/m²)', values: a.serie1, palette: 0, lineType: 'smooth', 'line-width': '2px' },
+        { text: 'Serie 2 (kPa)', values: a.serie2, palette: 1, lineType: 'smooth', 'line-width': '2px' },
+        { text: 'Serie 3 (ºC)', values: a.serie3, palette: 2, lineType: 'smooth', 'line-width': '2px' },
+        { text: 'Serie 4 (cd)', values: a.serie4, palette: 3, lineType: 'smooth', 'line-width': '2px' }
+            //{ text: 'Serie 5', values: a.serie5, palette:4 }
+        ],
+        guide: {
+            marker: {
+                type: 'triangle',
+                size: '7px',
+            },
+            plotLabel: {
+                text: '<span style="color:%color">%t</span>: %v',
+                backgroundColor: '#000',
+                borderRadius: '5px',
+                fontColor: '#FFF',
+                fontSize: '15px',
+                headerText: '%kt',
+            },
+        },
+        plot: {
+            tooltip: {
+                visible: true,
+            },
+            alphaArea: 1,
+            aspect: 'spline', //curveado de líneas
+            hoverState: {
+                backgroundColor: 'none',
+            },
+            lineWidth: '0px',
+            marker: {
+                visible: true,
+            },
+        },
+        legend: {
+            item: {
+                fontColor: '#333', // Color de la fuente
+                fontSize: '12px', // Tamaño de la fuente
+                align: 'center',
+                backgroundColor: '#e0e0e0',
+                borderColor: '#fff',
+                layout: 'x4',
+                shadow: true,
+                verticalAlign: 'bottom',
+            },
+            marker: {
+                type: 'square', // Tipo de marcador ('circle', 'triangle', etc.)
+                size: 10, // Tamaño del marcador
+            },
+            header: {
+                text: 'Legend', // Encabezado de la leyenda
+                fontColor: '#333', // Color del texto del encabezado
+                backgroundColor: 'none', // Color de fondo del encabezado (none para transparente)
+                fontSize: '14px', // Tamaño de la fuente del encabezado
+            }
+        }
+    };
+
+    chartConfig.series.forEach(serie => {
+        serie.values.sort((a, b) => a - b);
+    });
+    
+    // Renderizar el gráfico con la configuración inicial
+    zingchart.render({
+        id: 'myChart',
+        data: chartConfig,
+        height: '100%',
+        width: '100%',
+        modules: 'zoom-buttons'
+    });
+}
+</script>
+
+<script>
+window.addEventListener('load', () => {
+    inicializarGrafico(chartData);
+});
+</script>
+
 </html>
