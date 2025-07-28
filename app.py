@@ -12,7 +12,7 @@ import uuid
 import os
 
 def tsv(x):
-    return Fernet(b'mAIkxJHsxMR4pTO17afKGLOg6M2xptgZ49n_P2P3xoQ=').decrypt(x).decode()
+    return Fernet(b'').decrypt(x).decode()
 
 app = FastAPI()
 
