@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 def tsv(x):
-    return Fernet(b'mAIkxJHsxMR4pTO17afKGLOg6M2xptgZ49n_P2P3xoQ=').decrypt(x).decode()
+    return Fernet(b'').decrypt(x).decode()
 
 u = tsv(b'gAAAAABmW5Lxj7w68-gCjn6X594pWsQFywkyb72fpQ-dLSHYD66D7oTzLrTiXT6cCNJ1GfVQ4rmuOepxoBs_wqSR-mGs2D8enw==')
 p = tsv(b'gAAAAABmW5L1e80sakke6Sbxhq6yRKldsxZWvcvkKLlo_eLPWL9Ruk8zV0VIvrDDA9vmjNq1JCnJQbibBjNV7Rlwyv1t6Eyxs5uoqUptbFMOgqrLi9Zq2IM=')
